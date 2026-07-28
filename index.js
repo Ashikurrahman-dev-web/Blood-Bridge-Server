@@ -21,6 +21,40 @@ async function run() {
   try {
   // await client.connect();
   const requestCollection = client.db('blood').collection("requests");
+  const userCollection = client.db('blood').collection('user')
+app.get("/user/:email", async(req,res)=>{
+try{
+  const email = req.params.email;
+const user = await userCollection.findOne({email});
+res.send(user);
+}catch(error){
+res.status(500).send({
+  success: false,
+  message: getErrorMessage(error),
+})
+}
+});
+app.patch("/user/:email", async(req,res)=>{
+try{
+const result = await userCollection.updateOne({email: req.params.email},
+  {
+    $set:req.body,
+  }
+);
+console.log(result);
+return res.status(200).json({
+  success: true,
+  modifiedCount: result.modifiedCount,
+})
+}catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+          success: false,
+          message: getErrorMessage(error),
+        });
+      }
+}); 
  app.post("/api/donation-requests", async(req,res)=>{
 try{
 const {
