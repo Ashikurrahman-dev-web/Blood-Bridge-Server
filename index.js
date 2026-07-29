@@ -97,7 +97,26 @@ const newRequest = {
       message: error.message,
     });
   }
- }) 
+ });
+ app.get("/api/my-donation-requests", async(req,res)=>{
+const {email, status, page} =req.query;
+const query = {requesterEmail: email};
+if(status && status !== "all"){
+  query.donationStatus = status;
+};
+const limit = 5;
+const pageNumber = parseInt(page);
+const totalData = await requestCollection.countDocuments(query);
+const totalPage = Math.ceil(totalData / limit);
+const skip = (parseInt(pageNumber) - 1) * parseInt(limit)
+const requests = await requestCollection
+.find(query)
+.sort({createdAt:-1})
+.skip(skip)
+.limit(parseInt(limit))
+.toArray()
+res.send({totalPage, skip, pageNumber, requests});
+ }); 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
