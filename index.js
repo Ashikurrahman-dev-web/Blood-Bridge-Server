@@ -117,11 +117,22 @@ const requests = await requestCollection
 .toArray()
 res.send({totalPage, skip, pageNumber, requests});
  });
- app.delete('/api/donation-request/:id', async(req,res)=>{
+ app.delete("/api/donation-request/:id", async(req,res)=>{
 const {id} = req.params;
 const result = await requestCollection.deleteOne({_id: new ObjectId(id)});
 res.send(result);
- }) 
+ });
+app.get("/api/donation-request/:id", async (req, res) => {
+      try {
+        const result = await requestCollection.findOne({
+          _id: new ObjectId(req.params.id),
+        });
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send(error);
+      }
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
