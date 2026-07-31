@@ -133,6 +133,11 @@ app.get("/api/donation-request/:id", async (req, res) => {
         res.status(500).send(error);
       }
     });
+app.patch("/api/donation-request/:id", async(req,res)=>{
+const result = await requestCollection.updateOne({_id: new ObjectId(req.params.id)},
+{$set: req.body});
+res.send(result);
+});    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
