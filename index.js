@@ -137,6 +137,27 @@ app.patch("/api/donation-request/:id", async(req,res)=>{
 const result = await requestCollection.updateOne({_id: new ObjectId(req.params.id)},
 {$set: req.body});
 res.send(result);
+});
+app.get("/api/all-blood-donation-requests",async(req,res)=>{
+const {status, page=1 ,limit=5} = req.query;
+const query = {};
+if(status && status !== "all"){
+  query.donationStatus = status;
+};
+const totalData = await requestCollection.countDocuments(query);
+const requests = await requestCollection.find(query)
+.sort({createdAt:-1})
+.skip((parseInt(page)-1)* parseInt(limit))
+.limit(parseInt(limit))
+.toArray();
+res.send({totalPage: Math.ceil(totalData/parseInt(limit)), 
+  requests, totalData});
+});
+app.patch("/api/donation-request/status/:id", async(req,res)=>{
+const {status} = req.body;
+const result = await requestCollection.updateOne({_id: new ObjectId(req.params.id)},
+{$set: {donationStatus: status}});
+res.send(result);
 });    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
