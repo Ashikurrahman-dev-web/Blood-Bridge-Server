@@ -164,7 +164,29 @@ const request = await requestCollection.find({donationStatus: "approved"})
 .sort({createdAt:-1})
 .toArray();
 res.send(request);
-})    
+});
+app.get("/api/users", async(req,res)=>{
+  const {status} = req.query;
+  const query ={};
+ if(status && status !== "all"){
+  query.status = status;
+ };
+const users = await userCollection.find(query).toArray();
+res.send(users);
+});
+app.patch("/api/users/status/:id", async(req,res)=>{
+const {status} = req.body;
+const result = await userCollection.updateOne({_id: new ObjectId(req.params.id)},
+{$set: {status: status}});
+res.send(result);
+});
+app.patch("/api/users/role/:id", async(req,res)=>{
+const {role} = req.body;
+const result = await userCollection.updateOne({_id: new ObjectId(req.params.id)},
+{$set: {role: role}});
+res.send(result);
+});
+   
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
