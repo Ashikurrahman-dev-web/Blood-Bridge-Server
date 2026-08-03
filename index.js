@@ -158,7 +158,13 @@ const {status} = req.body;
 const result = await requestCollection.updateOne({_id: new ObjectId(req.params.id)},
 {$set: {donationStatus: status}});
 res.send(result);
-});    
+});
+app.get("/api/public-donation-requests", async(req,res)=>{
+const request = await requestCollection.find({donationStatus: "approved"})
+.sort({createdAt:-1})
+.toArray();
+res.send(request);
+})    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
