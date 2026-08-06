@@ -160,17 +160,31 @@ const result = await requestCollection.updateOne({_id: new ObjectId(req.params.i
 res.send(result);
 });
 app.get("/api/public-donation-requests", async(req,res)=>{
-const request = await requestCollection.find({donationStatus: "approved"})
+  const {blood,district,upazila} = req.query;
+  const query = {}
+  if(blood && blood !== "all"){
+query.bloodGroup = blood;
+  };
+if(district && district !== "all"){
+query.recipientDistrict = district;
+};
+if(upazila && upazila !== "all"){
+ query.recipientUpazila = upazila; 
+}  
+const request = await requestCollection.find(query,{donationStatus: "approved"})
 .sort({createdAt:-1})
 .toArray();
 res.send(request);
 });
 app.get("/api/users", async(req,res)=>{
-  const {status} = req.query;
+  const {status,roleVisitor} = req.query;
   const query ={};
  if(status && status !== "all"){
   query.status = status;
  };
+ if(roleVisitor && roleVisitor !== "all"){
+query.role = roleVisitor;
+ }
 const users = await userCollection.find(query).toArray();
 res.send(users);
 });
