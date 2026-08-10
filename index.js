@@ -161,7 +161,7 @@ res.send(result);
 });
 app.get("/api/public-donation-requests", async(req,res)=>{
   const {blood,district,upazila} = req.query;
-  const query = {}
+  const query = {donationStatus: "approved"};
   if(blood && blood !== "all"){
 query.bloodGroup = blood;
   };
@@ -171,7 +171,7 @@ query.recipientDistrict = district;
 if(upazila && upazila !== "all"){
  query.recipientUpazila = upazila; 
 }  
-const request = await requestCollection.find(query,{donationStatus: "approved"})
+const request = await requestCollection.find(query)
 .sort({createdAt:-1})
 .toArray();
 res.send(request);
@@ -200,7 +200,39 @@ const result = await userCollection.updateOne({_id: new ObjectId(req.params.id)}
 {$set: {role: role}});
 res.send(result);
 });
-   
+app.patch("/api/booking/:id", async(req,res)=>{
+const {patientName,patientEmail } = req.body
+const result = await requestCollection.updateOne({_id: new ObjectId(req.params.id)},{
+  $set:{
+donationStatus: "booked",
+patientName,patientEmail,
+  },
+});
+res.send(result)
+});  
+app.get("/api/booking-donation",async(req,res)=>{
+const {email} = req.query;
+const query = {patientEmail: email, donationStatus:"booked"}
+const bookingData = await requestCollection.find(query).toArray();
+res.send(bookingData);
+});
+app.patch("/api/booking-donation/:id", async (req, res) => {
+  const result = await requestCollection.updateOne(
+    {
+      _id: new ObjectId(req.params.id),
+    },
+    {
+      $set: {
+        donationStatus: "approved",
+      },
+      $unset: {
+        patientEmail: "",
+        patientName: "",
+      },
+    }
+  );
+ res.send(result);
+});
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
