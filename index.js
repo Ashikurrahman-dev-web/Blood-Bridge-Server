@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 const cors = require("cors");
 const {MongoClient, ServerApiVersion, ObjectId} = require('mongodb'); 
+const { create } = require('node:domain');
 const uri = process.env.MONGODB_URI;
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,6 +23,20 @@ async function run() {
   // await client.connect();
   const requestCollection = client.db('blood').collection("requests");
   const userCollection = client.db('blood').collection('user')
+ const messageCollection = client.db('blood').collection('message')
+app.post("/api/message", async(req,res)=>{
+const data =req.body;
+const result = await messageCollection.insertOne(data);
+res.json(result)
+});
+app.get("/api/message/admin", async(req,res)=>{
+const result = await messageCollection.find().toArray()
+res.send(result)
+});
+app.delete("/api/message/admin/:id", async(req,res)=>{
+const result = await messageCollection.deleteOne({_id: new ObjectId(req.params.id)});
+res.send(result);
+});
 app.get("/user/:email", async(req,res)=>{
 try{
   const email = req.params.email;
@@ -233,6 +248,11 @@ app.patch("/api/booking-donation/:id", async (req, res) => {
   );
  res.send(result);
 });
+app.patch("/api/booking-donation/done/:id", async(req,res)=>{
+const result = await requestCollection.updateOne({_id: new ObjectId(req.params.id)},
+{$set: {donationStatus: "done"}});
+res.send(result);
+})
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
