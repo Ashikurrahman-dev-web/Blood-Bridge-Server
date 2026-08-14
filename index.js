@@ -24,6 +24,25 @@ async function run() {
   const requestCollection = client.db('blood').collection("requests");
   const userCollection = client.db('blood').collection('user')
  const messageCollection = client.db('blood').collection('message')
+ const commentCollection = client.db('blood').collection('comment')
+app.post("/api/comment", async(req,res)=>{
+const data =req.body;
+const result = await commentCollection.insertOne(data);
+res.json(result)
+}); 
+app.get("/api/comment/admin", async(req,res)=>{
+const result = await commentCollection.find().toArray()
+res.send(result)
+});
+app.patch("/api/comment/:id", async(req,res)=>{
+const result = await commentCollection.updateOne({_id: new ObjectId(req.params.id)},
+{$set: req.body});
+res.send(result);
+});
+app.delete("/api/comment/:id", async(req,res)=>{
+const result = await commentCollection.deleteOne({_id: new ObjectId(req.params.id)});
+res.send(result);
+});
 app.post("/api/message", async(req,res)=>{
 const data =req.body;
 const result = await messageCollection.insertOne(data);
@@ -75,27 +94,19 @@ try{
 const {
   requesterName,
     requesterEmail,
-    recipientName,
-    recipientDistrict,
-    recipientUpazila,
-    bloodGroup,
-    hospitalName,
+    requesterDistrict,
+    requesterUpazila,
+    requesterBloodGroup,
     fullAddress,
     requestMessage,
-    donationDate,
-    donationTime,
 } = req.body
 const newRequest = {
       requesterName,
       requesterEmail,
-      recipientName,
-      recipientDistrict,
-      recipientUpazila,
-      hospitalName,
+      requesterDistrict,
+      requesterUpazila,
       fullAddress,
-      bloodGroup,
-      donationDate,
-      donationTime,
+      requesterBloodGroup,
       requestMessage,
       donationStatus: "pending",
       createdAt: new Date(),
