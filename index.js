@@ -64,6 +64,10 @@ const isExistSession = await fundingCollection.findOne({SessionId});
     });
   }
 });
+app.get("/api/donationDetails",async(req,res)=>{
+  const result = await fundingCollection.find().toArray();
+  res.send(result);
+});
 app.post("/api/comment", async(req,res)=>{
 const data =req.body;
 const result = await commentCollection.insertOne(data);
@@ -302,7 +306,28 @@ app.patch("/api/booking-donation/done/:id", async(req,res)=>{
 const result = await requestCollection.updateOne({_id: new ObjectId(req.params.id)},
 {$set: {donationStatus: "done"}});
 res.send(result);
-})
+});
+app.get("/api/admin-stats", async (req, res) => {
+  try {
+const totalUsers = await userCollection.countDocuments();
+const totalRequests = await requestCollection.countDocuments();
+const totalDonor = await userCollection.countDocuments({role: "donor"});
+ const totalPatient = await userCollection.countDocuments({role: "patient"});  
+const deliveredBlood = await requestCollection.countDocuments({donationStatus: "done"});
+    res.send({
+      totalUsers,
+      totalRequests,
+      totalDonor,
+      totalPatient,
+      deliveredBlood,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: error.message,
+    });
+  }
+});
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
