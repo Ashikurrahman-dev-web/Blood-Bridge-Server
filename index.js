@@ -25,6 +25,45 @@ async function run() {
   const userCollection = client.db('blood').collection('user')
  const messageCollection = client.db('blood').collection('message')
  const commentCollection = client.db('blood').collection('comment')
+ const fundingCollection = client.db('blood').collection('funding');
+ app.post("/api/donation", async (req, res) => {
+  try {
+    const {
+      userId,
+      userName,
+      userEmail,
+      userImage,
+      fundingAmount,
+      SessionId
+    } = req.body;
+const isExistSession = await fundingCollection.findOne({SessionId});
+  if(isExistSession){
+     return res.status(400).send({ message: "Session already exist" });
+  }
+    await fundingCollection.insertOne({
+      userId: new ObjectId(userId) ,
+      userEmail,
+      userName,
+      userImage,
+      fundingAmount: Number(fundingAmount),
+      SessionId,
+      createdAt: new Date()
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Funding saved successfully"
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to save funding"
+    });
+  }
+});
 app.post("/api/comment", async(req,res)=>{
 const data =req.body;
 const result = await commentCollection.insertOne(data);
