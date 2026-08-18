@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 const cors = require("cors");
 const {MongoClient, ServerApiVersion, ObjectId} = require('mongodb'); 
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 const { create } = require('node:domain');
 const uri = process.env.MONGODB_URI;
 const app = express();
@@ -18,15 +19,43 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+const JWKS = createRemoteJWKSet(
+      new URL(`${process.env.CLIENT_URL}/api/auth/jwks`));
+   
+const verifyToken = async (req, res, next)=>{
+const authHeader = req.headers.authorization
+if(!authHeader){
+  return res.status(401).json({message: "Unauthorized"})
+}
+const token = authHeader.split(" ")[1]
+console.log(token)
+if(!token){
+  return res.status(401).json({message: "Unauthorized"})
+}
+ try {
+  const { payload } = await jwtVerify(token, JWKS);
+
+  req.user = payload;
+
+  console.log("Verified User:", payload);
+
+  next();
+} catch (error) {
+  console.log(error);
+
+  return res.status(401).json({
+    message: "Forbidden",
+  });
+}
+};
 async function run() {
   try {
-  // await client.connect();
   const requestCollection = client.db('blood').collection("requests");
   const userCollection = client.db('blood').collection('user')
  const messageCollection = client.db('blood').collection('message')
  const commentCollection = client.db('blood').collection('comment')
  const fundingCollection = client.db('blood').collection('funding');
- app.post("/api/donation", async (req, res) => {
+ app.post("/api/donation", verifyToken, async (req, res) => {
   try {
     const {
       userId,
@@ -64,25 +93,25 @@ const isExistSession = await fundingCollection.findOne({SessionId});
     });
   }
 });
-app.get("/api/donationDetails",async(req,res)=>{
+app.get("/api/donationDetails", verifyToken,async(req,res)=>{
   const result = await fundingCollection.find().toArray();
   res.send(result);
 });
-app.post("/api/comment", async(req,res)=>{
+app.post("/api/comment",verifyToken, async(req,res)=>{
 const data =req.body;
 const result = await commentCollection.insertOne(data);
 res.json(result)
 }); 
-app.get("/api/comment/admin", async(req,res)=>{
+app.get("/api/comment/admin",verifyToken, async(req,res)=>{
 const result = await commentCollection.find().toArray()
 res.send(result)
 });
-app.patch("/api/comment/:id", async(req,res)=>{
+app.patch("/api/comment/:id",verifyToken, async(req,res)=>{
 const result = await commentCollection.updateOne({_id: new ObjectId(req.params.id)},
 {$set: req.body});
 res.send(result);
 });
-app.delete("/api/comment/:id", async(req,res)=>{
+app.delete("/api/comment/:id",verifyToken, async(req,res)=>{
 const result = await commentCollection.deleteOne({_id: new ObjectId(req.params.id)});
 res.send(result);
 });
@@ -91,15 +120,15 @@ const data =req.body;
 const result = await messageCollection.insertOne(data);
 res.json(result)
 });
-app.get("/api/message/admin", async(req,res)=>{
+app.get("/api/message/admin",verifyToken, async(req,res)=>{
 const result = await messageCollection.find().toArray()
 res.send(result)
 });
-app.delete("/api/message/admin/:id", async(req,res)=>{
+app.delete("/api/message/admin/:id",verifyToken, async(req,res)=>{
 const result = await messageCollection.deleteOne({_id: new ObjectId(req.params.id)});
 res.send(result);
 });
-app.get("/user/:email", async(req,res)=>{
+app.get("/user/:email",verifyToken, async(req,res)=>{
 try{
   const email = req.params.email;
 const user = await userCollection.findOne({email});
@@ -111,7 +140,7 @@ res.status(500).send({
 })
 }
 });
-app.patch("/user/:email", async(req,res)=>{
+app.patch("/user/:email",verifyToken, async(req,res)=>{
 try{
 const result = await userCollection.updateOne({email: req.params.email},
   {
@@ -132,7 +161,7 @@ return res.status(200).json({
         });
       }
 }); 
- app.post("/api/donation-requests", async(req,res)=>{
+ app.post("/api/donation-requests",verifyToken, async(req,res)=>{
 try{
 const {
   requesterName,
@@ -167,7 +196,7 @@ const newRequest = {
     });
   }
  });
- app.get("/api/my-donation-requests", async(req,res)=>{
+ app.get("/api/my-donation-requests",verifyToken, async(req,res)=>{
 const {email, status, page} =req.query;
 const query = {requesterEmail: email};
 if(status && status !== "all"){
@@ -191,7 +220,7 @@ const {id} = req.params;
 const result = await requestCollection.deleteOne({_id: new ObjectId(id)});
 res.send(result);
  });
-app.get("/api/donation-request/:id", async (req, res) => {
+app.get("/api/donation-request/:id",verifyToken, async (req, res) => {
       try {
         const result = await requestCollection.findOne({
           _id: new ObjectId(req.params.id),
@@ -202,12 +231,12 @@ app.get("/api/donation-request/:id", async (req, res) => {
         res.status(500).send(error);
       }
     });
-app.patch("/api/donation-request/:id", async(req,res)=>{
+app.patch("/api/donation-request/:id",verifyToken, async(req,res)=>{
 const result = await requestCollection.updateOne({_id: new ObjectId(req.params.id)},
 {$set: req.body});
 res.send(result);
 });
-app.get("/api/all-blood-donation-requests",async(req,res)=>{
+app.get("/api/all-blood-donation-requests",verifyToken, async(req,res)=>{
 const {status, page=1 ,limit=5} = req.query;
 const query = {};
 if(status && status !== "all"){
@@ -222,7 +251,7 @@ const requests = await requestCollection.find(query)
 res.send({totalPage: Math.ceil(totalData/parseInt(limit)), 
   requests, totalData});
 });
-app.patch("/api/donation-request/status/:id", async(req,res)=>{
+app.patch("/api/donation-request/status/:id",verifyToken, async(req,res)=>{
 const {status} = req.body;
 const result = await requestCollection.updateOne({_id: new ObjectId(req.params.id)},
 {$set: {donationStatus: status}});
@@ -245,7 +274,7 @@ const request = await requestCollection.find(query)
 .toArray();
 res.send(request);
 });
-app.get("/api/users", async(req,res)=>{
+app.get("/api/users",verifyToken, async(req,res)=>{
   const {status,roleVisitor} = req.query;
   const query ={};
  if(status && status !== "all"){
@@ -257,19 +286,19 @@ query.role = roleVisitor;
 const users = await userCollection.find(query).toArray();
 res.send(users);
 });
-app.patch("/api/users/status/:id", async(req,res)=>{
+app.patch("/api/users/status/:id",verifyToken, async(req,res)=>{
 const {status} = req.body;
 const result = await userCollection.updateOne({_id: new ObjectId(req.params.id)},
 {$set: {status: status}});
 res.send(result);
 });
-app.patch("/api/users/role/:id", async(req,res)=>{
+app.patch("/api/users/role/:id",verifyToken, async(req,res)=>{
 const {role} = req.body;
 const result = await userCollection.updateOne({_id: new ObjectId(req.params.id)},
 {$set: {role: role}});
 res.send(result);
 });
-app.patch("/api/booking/:id", async(req,res)=>{
+app.patch("/api/booking/:id",verifyToken, async(req,res)=>{
 const {patientName,patientEmail } = req.body
 const result = await requestCollection.updateOne({_id: new ObjectId(req.params.id)},{
   $set:{
@@ -279,13 +308,13 @@ patientName,patientEmail,
 });
 res.send(result)
 });  
-app.get("/api/booking-donation",async(req,res)=>{
+app.get("/api/booking-donation",verifyToken, async(req,res)=>{
 const {email} = req.query;
 const query = {patientEmail: email, donationStatus:"booked"}
 const bookingData = await requestCollection.find(query).toArray();
 res.send(bookingData);
 });
-app.patch("/api/booking-donation/:id", async (req, res) => {
+app.patch("/api/booking-donation/:id",verifyToken, async (req, res) => {
   const result = await requestCollection.updateOne(
     {
       _id: new ObjectId(req.params.id),
@@ -302,12 +331,12 @@ app.patch("/api/booking-donation/:id", async (req, res) => {
   );
  res.send(result);
 });
-app.patch("/api/booking-donation/done/:id", async(req,res)=>{
+app.patch("/api/booking-donation/done/:id",verifyToken, async(req,res)=>{
 const result = await requestCollection.updateOne({_id: new ObjectId(req.params.id)},
 {$set: {donationStatus: "done"}});
 res.send(result);
 });
-app.get("/api/admin-stats", async (req, res) => {
+app.get("/api/admin-stats",verifyToken, async (req, res) => {
   try {
 const totalUsers = await userCollection.countDocuments();
 const totalRequests = await requestCollection.countDocuments();
