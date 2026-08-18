@@ -102,7 +102,7 @@ const data =req.body;
 const result = await commentCollection.insertOne(data);
 res.json(result)
 }); 
-app.get("/api/comment/admin",verifyToken, async(req,res)=>{
+app.get("/api/comment/admin", async(req,res)=>{
 const result = await commentCollection.find().toArray()
 res.send(result)
 });
